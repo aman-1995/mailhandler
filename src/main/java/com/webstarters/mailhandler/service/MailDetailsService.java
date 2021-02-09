@@ -29,10 +29,15 @@ public class MailDetailsService {
 	@Autowired
 	private MailConfigurationRepository mailConfigurationRepository = null;
 
+	@Autowired
+	private FileHandler fileHandler = null;
+
 	public String saveMailDetails(MailDetailsVo mailDetailsVo) {
 		MailDetails mailDetails = new MailDetails(mailDetailsVo.getMailTo(), mailDetailsVo.getMailFrom(), 
 				mailDetailsVo.getMailcc(), mailDetailsVo.getMailBody(), mailDetailsVo.getMailSubject());
-		return mailDetailsRepository.save(mailDetails).getMailId();
+		String mailId = mailDetailsRepository.save(mailDetails).getMailId();
+		fileHandler.addAttachmentFilesInFolder(mailDetailsVo.getAttachments(), mailId);
+		return mailId;
 	}
 	
 	public List<MailDetails> getAllUnsentMails() {
