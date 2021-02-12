@@ -36,7 +36,15 @@ public class FileHandlerImplementation implements FileHandler {
 	public void deleteMailAttachmentFiles(String mailId) {
 		Path mailDirectory = mailConfiguration.getAttachmentDirectoryPath().resolve(mailId);
 		try {
-			Files.delete(mailDirectory);
+			if(mailDirectory.toFile().isDirectory()){
+				for(File file : mailDirectory.toFile().listFiles()){
+					file.delete();
+				}
+				Files.delete(mailDirectory);
+			}else{
+				Files.delete(mailDirectory);
+			}
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

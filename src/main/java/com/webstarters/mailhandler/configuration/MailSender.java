@@ -53,7 +53,8 @@ public class MailSender {
 			mailDetailsVo.setAttachments(files);
 			Boolean mailSent = MailUtility.sendMail(mailDetailsVo, message);
 			if(mailSent) {
-				
+				mailDetailsService.deleteMailById(mailDetails.getMailId());
+				fileHandler.deleteMailAttachmentFiles(mailDetails.getMailId());
 			}
 		});
 	}
