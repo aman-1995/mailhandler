@@ -14,6 +14,7 @@ import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -27,36 +28,41 @@ import com.webstarters.mailhandler.service.MailDetailsService;
  */
 @Component
 public class MailSender {
-	
+
 	@Autowired
 	private MailDetailsService mailDetailsService = null;
-	
+
 	@Autowired
 	private FileHandler fileHandler = null;
-	
+
 	private static final String SSL = "SSL";
 
 	private static final String TLS = "TLS";
 
+	@Value("${mailhandler.enabled}")
+	private boolean mailEnabled;
+
 	@Scheduled(fixedRate = 5000)
 	private void getMailsToBeSent() {
-		HashMap<String, String> mailProperties = new HashMap<String, String>();
-		mailDetailsService.getMailConfiguration().stream().forEach(config -> {
-			mailProperties.put(config.getConfigName(), config.getConfigValue());
-		});
-		
-		Session session  = getMailSession(mailProperties);
-		mailDetailsService.getAllUnsentMails().stream().forEach(mailDetails -> {
-			MimeMessage message = new MimeMessage(session);
-			MailDetailsVo mailDetailsVo = new MailDetailsVo(mailDetails);
-			List<File> files = fileHandler.getMailAttachments(mailDetails.getMailId());
-			mailDetailsVo.setAttachments(files);
-			Boolean mailSent = MailUtility.sendMail(mailDetailsVo, message);
-			if(mailSent) {
-				mailDetailsService.deleteMailById(mailDetails.getMailId());
-				fileHandler.deleteMailAttachmentFiles(mailDetails.getMailId());
-			}
-		});
+		if (mailEnabled) {
+			HashMap<String, String> mailProperties = new HashMap<>();
+			mailDetailsService.getMailConfiguration().stream().forEach(config -> {
+				mailProperties.put(config.getConfigName(), config.getConfigValue());
+			});
+
+			Session session = getMailSession(mailProperties);
+			mailDetailsService.getAllUnsentMails().stream().forEach(mailDetails -> {
+				MimeMessage message = new MimeMessage(session);
+				MailDetailsVo mailDetailsVo = new MailDetailsVo(mailDetails);
+				List<File> files = fileHandler.getMailAttachments(mailDetails.getMailId());
+				mailDetailsVo.setAttachments(files);
+				Boolean mailSent = MailUtility.sendMail(mailDetailsVo, message);
+				if (mailSent.booleanValue()) {
+					mailDetailsService.deleteMailById(mailDetails.getMailId());
+					fileHandler.deleteMailAttachmentFiles(mailDetails.getMailId());
+				}
+			});
+		}
 	}
 
 	private Session getMailSession(HashMap<String, String> mailProperties) {
@@ -65,7 +71,7 @@ public class MailSender {
 		String smtpSecurityProtocol = mailProperties.get("mail.smtp.securityProtocol");
 		properties.setProperty("mail.smtp.host", mailProperties.get("mail.smtp.host"));
 		properties.setProperty("mail.smtp.port", stmpPort);
-		if (smtpSecurityProtocol != null && smtpSecurityProtocol != "") {
+		if (smtpSecurityProtocol != null && "".equals(smtpSecurityProtocol)) {
 			if (smtpSecurityProtocol.equalsIgnoreCase(SSL)) {
 				properties.setProperty("mail.smtp.socketFactory.port", stmpPort);
 				properties.setProperty("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
@@ -99,7 +105,8 @@ public class MailSender {
 					return new PasswordAuthentication(username, password);
 				}
 			}
-			authenticator = new SMTPAuthenticator(mailProperties.get("mail.smtp.user"), mailProperties.get("mail.smtp.password"));
+			authenticator = new SMTPAuthenticator(mailProperties.get("mail.smtp.user"),
+					mailProperties.get("mail.smtp.password"));
 			session = Session.getInstance(properties, authenticator);
 		} else {
 			session = Session.getDefaultInstance(properties, null);

@@ -9,7 +9,7 @@
 	</parent>
 	<groupId>com.github.aman-1995</groupId>
 	<artifactId>mailhandler</artifactId>
-	<version>0.0.3-SNAPSHOT</version>
+	<version>1.0.0-SNAPSHOT</version>
 	<name>Mail Utility</name>
 	<description>Mail utility backend</description>
 	<url>https://github.com/aman-1995/webcomponents</url>
